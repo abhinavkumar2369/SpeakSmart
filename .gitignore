@@ -1,0 +1,7 @@
+
+.pytest_cache
+logs/
+.env
+speaksmart.db
+app/__pycache__/
+*.pyc

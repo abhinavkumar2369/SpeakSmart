@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpeakSmart — AI Language Translation & Grammar Engine</title>
+    <meta name="description" content="AI-powered language translation, grammar checking, summarization, and language detection.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50:  '#ecfeff',
+                            100: '#cffafe',
+                            200: '#a5f3fc',
+                            300: '#67e8f9',
+                            400: '#22d3ee',
+                            500: '#06b6d4',
+                            600: '#0891b2',
+                            700: '#0e7490',
+                            800: '#155e75',
+                            900: '#164e63',
+                            950: '#083344',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', system-ui, sans-serif; }
+        body { background: #0f172a; }
+        .glass { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(16px); border: 1px solid rgba(6, 182, 212, 0.1); }
+        .card { background: linear-gradient(135deg, rgba(15,23,42,0.9), rgba(30,41,59,0.8)); border: 1px solid rgba(100,116,139,0.2); }
+        .card:hover { border-color: rgba(6,182,212,0.3); box-shadow: 0 0 30px rgba(6,182,212,0.05); }
+        .glow { box-shadow: 0 0 40px rgba(6,182,212,0.15); }
+        .btn-primary { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+        .btn-primary:hover { background: linear-gradient(135deg, #22d3ee, #06b6d4); box-shadow: 0 4px 20px rgba(6,182,212,0.3); }
+        .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .btn-danger:hover { background: linear-gradient(135deg, #f87171, #ef4444); }
+        .input-field { background: rgba(15,23,42,0.8); border: 1px solid rgba(100,116,139,0.3); color: #e2e8f0; }
+        .input-field:focus { border-color: #06b6d4; box-shadow: 0 0 0 3px rgba(6,182,212,0.15); outline: none; }
+        .tab-active { background: linear-gradient(135deg, rgba(6,182,212,0.15), rgba(6,182,212,0.05)); border-color: #06b6d4; color: #22d3ee; }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .modal-backdrop { background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        .toast { animation: slideIn 0.3s ease-out, fadeOut 0.3s ease-in 2.7s forwards; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeOut { to { opacity: 0; transform: translateX(100%); } }
+        textarea { resize: vertical; }
+        select option { background: #1e293b; color: #e2e8f0; }
+    </style>
+</head>
+<body class="min-h-screen text-slate-200">
+
+    <!-- Toast container -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2"></div>
+
+    <!-- Header -->
+    <header class="glass sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl btn-primary flex items-center justify-center glow">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-white">SpeakSmart</h1>
+                    <p class="text-xs text-slate-400">AI Language Translation & Grammar Engine</p>
+                </div>
+            </div>
+            <div id="api-status" class="flex items-center gap-2 text-sm text-slate-400">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> API Connected
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="max-w-7xl mx-auto px-4 sm:px-6 mt-6">
+        <div class="flex gap-1 overflow-x-auto pb-1" id="nav-tabs">
+            <button onclick="switchTab('ai-tools')" data-tab="ai-tools" class="tab-btn tab-active flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium border border-transparent transition-all whitespace-nowrap">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611l-.573.097a9.045 9.045 0 01-7.124 0l-.573-.097C10.633 20.02 10.05 17.933 11.282 16.7L12.7 15.3"/></svg>
+                AI Tools
+            </button>
+            <button onclick="switchTab('languages')" data-tab="languages" class="tab-btn flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-400 border border-transparent hover:text-slate-200 hover:bg-slate-800/50 transition-all whitespace-nowrap">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5a17.92 17.92 0 01-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418"/></svg>
+                Languages
+            </button>
+            <button onclick="switchTab('translations')" data-tab="translations" class="tab-btn flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-400 border border-transparent hover:text-slate-200 hover:bg-slate-800/50 transition-all whitespace-nowrap">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z"/></svg>
+                Translations
+            </button>
+            <button onclick="switchTab('grammar')" data-tab="grammar" class="tab-btn flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-400 border border-transparent hover:text-slate-200 hover:bg-slate-800/50 transition-all whitespace-nowrap">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.331 0 4.467.89 6.064 2.346m0-12.804A8.968 8.968 0 0118 3.75c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.346m0-12.804v12.804"/></svg>
+                Grammar Rules
+            </button>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+
+        <!-- ═══════════════════ AI TOOLS TAB ═══════════════════ -->
+        <section id="tab-ai-tools" class="tab-content fade-in">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                <!-- Translate -->
+                <div class="card rounded-2xl p-6 transition-all duration-300">
+                    <div class="flex items-center gap-3 mb-5">
+                        <div class="w-10 h-10 rounded-xl bg-brand-500/20 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-white text-lg">Translate</h3>
+                            <p class="text-xs text-slate-400">AI-powered translation between languages</p>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <input id="ai-src-lang" type="text" placeholder="Source language (e.g. English)" class="input-field w-full px-4 py-2.5 rounded-xl text-sm transition-all">
+                        <input id="ai-tgt-lang" type="text" placeholder="Target language (e.g. Spanish)" class="input-field w-full px-4 py-2.5 rounded-xl text-sm transition-all">
+                        <textarea id="ai-translate-text" rows="3" placeholder="Enter text to translate..." class="input-field w-full px-4 py-2.5 rounded-xl text-sm transition-all"></textarea>
+                        <button onclick="aiTranslate()" class="btn-primary w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-all">Translate</button>
+                    </div>
+                    <div id="translate-result" class="mt-4 hidden">
+                        <div class="bg-slate-800/60 rounded-xl p-4 text-sm">
+                            <p class="text-xs text-brand-400 font-semibold uppercase tracking-wide mb-2">Translation</p>
+                            <p id="translate-output" class="text-slate-200 leading-relaxed"></p>
+                            <p id="translate-confidence" class="text-xs text-slate-500 mt-2"></p>
+                            <p id="translate-notes" class="text-xs text-slate-400 mt-1 italic"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grammar Check -->
+                <div class="card rounded-2xl p-6 transition-all duration-300">
+                    <div class="flex items-center gap-3 mb-5">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-white text-lg">Grammar Check</h3>
+                            <p class="text-xs text-slate-400">Analyze grammar, spelling & punctuation</p>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <input id="ai-grammar-lang" type="text" placeholder="Language (default: English)" class="input-field w-full px-4 py-2.5 rounded-xl text-sm transition-all">
+                        <textarea id="ai-grammar-text" rows="4" placeholder="Enter text to check grammar..." class="input-field w-full px-4 py-2.5 rounded-xl text-sm transition-all"></textarea>
+                        <button onclick="aiGrammarCheck()" class="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-all" style="background:linear-gradient(135deg,#10b981,#059669)">Check Grammar</button>
+                    </div>
+                    <div id="grammar-result" class="mt-4 hidden">
+                        <div class="bg-slate-800/60 rounded-xl p-4 text-sm">
+                            <div class="flex items-center justify-between mb-2">
+                                <p class="text-xs text-emerald-400 font-semibold uppercase tracking-wide">Corrected Text</p>
+                                <span id="grammar-score" class="text-xs font-bold px-2 py-0.5 rounded-full"></span>
+                            </div>
+                            <p id="grammar-output" class="text-slate-200 leading-relaxed"></p>
+                            <div id="grammar-errors" class="mt-3 space-y-2"></div>
+                            <div id="grammar-suggestions" class="mt-3"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summarize -->
+                <div class="card rounded-2xl p-6 transition-all duration-300">
+                    <div class="flex items-center gap-3 mb-5">
+                        <div class="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-white text-lg">Summarize</h3>
+                            <p class="text-xs text-slate-400">Condense text with optional translation</p>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="grid grid-cols-2 gap-3">
+                            <input id="ai-sum-lang" type="text" placeholder="Target language (optional)" class="input-field w-full px-4 py-2.5 rounded-xl text-sm transition-all">
+                            <input id="ai-sum-sentences" type="number" value="3" min="1" max="10" placeholder="Max sentences" class="input-field w-full px-4 py-2.5 rounded-xl text-sm transition-all">
+                        </div>
+                        <textarea id="ai-sum-text" rows="4" placeholder="Enter long text to summarize..." class="input-field w-full px-4 py-2.5 rounded-xl text-sm transition-all"></textarea>
+                        <button onclick="aiSummarize()" class="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-all" style="background:linear-gradient(135deg,#f59e0b,#d97706)">Summarize</button>
+                    </div>
+                    <div id="summarize-result" class="mt-4 hidden">
+                        <div class="bg-slate-800/60 rounded-xl p-4 text-sm">
+                            <p class="text-xs text-amber-400 font-semibold uppercase tracking-wide mb-2">Summary</p>
+                            <p id="summarize-output" class="text-slate-200 leading-relaxed"></p>
+                            <div id="summarize-keypoints" class="mt-3"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Language Detect -->
+                <div class="card rounded-2xl p-6 transition-all duration-300">
+                    <div class="flex items-center gap-3 mb-5">
+                        <div class="w-10 h-10 rounded-xl bg-rose-500/20 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-white text-lg">Detect Language</h3>
+                            <p class="text-xs text-slate-400">Identify the language of any text</p>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <textarea id="ai-detect-text" rows="4" placeholder="Paste text to detect language..." class="input-field w-full px-4 py-2.5 rounded-xl text-sm transition-all"></textarea>
+                        <button onclick="aiDetect()" class="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-all" style="background:linear-gradient(135deg,#f43f5e,#e11d48)">Detect Language</button>
+                    </div>
+                    <div id="detect-result" class="mt-4 hidden">
+                        <div class="bg-slate-800/60 rounded-xl p-4 text-sm">
+                            <p class="text-xs text-rose-400 font-semibold uppercase tracking-wide mb-2">Detection Result</p>
+                            <div class="flex items-center gap-3">
+                                <span id="detect-lang" class="text-2xl font-bold text-white"></span>
+                                <span id="detect-code" class="text-sm text-slate-400 bg-slate-700 px-2 py-0.5 rounded-md"></span>
+                                <span id="detect-conf" class="text-xs text-slate-500"></span>
+                            </div>
+                            <div id="detect-alts" class="mt-2"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ═══════════════════ LANGUAGES TAB ═══════════════════ -->
+        <section id="tab-languages" class="tab-content hidden">
+            <div class="card rounded-2xl p-6 fade-in">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-bold text-white">Languages</h2>
+                    <button onclick="showModal('lang-modal')" class="btn-primary px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                        Add Language
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="text-left text-xs text-slate-400 uppercase tracking-wide border-b border-slate-700/50">
+                                <th class="py-3 px-4">ID</th>
+                                <th class="py-3 px-4">Name</th>
+                                <th class="py-3 px-4">Code</th>
+                                <th class="py-3 px-4">Created</th>
+                                <th class="py-3 px-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="languages-table" class="divide-y divide-slate-700/30"></tbody>
+                    </table>
+                </div>
+                <p id="languages-empty" class="hidden text-center text-slate-500 py-12">No languages yet. Click "Add Language" to get started.</p>
+            </div>
+        </section>
+
+        <!-- ═══════════════════ TRANSLATIONS TAB ═══════════════════ -->
+        <section id="tab-translations" class="tab-content hidden">
+            <div class="card rounded-2xl p-6 fade-in">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-bold text-white">Translations</h2>
+                    <button onclick="showTranslationModal()" class="btn-primary px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                        Add Translation
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="text-left text-xs text-slate-400 uppercase tracking-wide border-b border-slate-700/50">
+                                <th class="py-3 px-4">ID</th>
+                                <th class="py-3 px-4">Source Lang</th>
+                                <th class="py-3 px-4">Target Lang</th>
+                                <th class="py-3 px-4">Source Text</th>
+                                <th class="py-3 px-4">Translated Text</th>
+                                <th class="py-3 px-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="translations-table" class="divide-y divide-slate-700/30"></tbody>
+                    </table>
+                </div>
+                <p id="translations-empty" class="hidden text-center text-slate-500 py-12">No translations yet. Click "Add Translation" to create one.</p>
+            </div>
+        </section>
+
+        <!-- ═══════════════════ GRAMMAR RULES TAB ═══════════════════ -->
+        <section id="tab-grammar" class="tab-content hidden">
+            <div class="card rounded-2xl p-6 fade-in">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-bold text-white">Grammar Rules</h2>
+                    <button onclick="showGrammarRuleModal()" class="btn-primary px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                        Add Rule
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="text-left text-xs text-slate-400 uppercase tracking-wide border-b border-slate-700/50">
+                                <th class="py-3 px-4">ID</th>
+                                <th class="py-3 px-4">Language</th>
+                                <th class="py-3 px-4">Rule Name</th>
+                                <th class="py-3 px-4">Description</th>
+                                <th class="py-3 px-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="grammar-table" class="divide-y divide-slate-700/30"></tbody>
+                    </table>
+                </div>
+                <p id="grammar-empty" class="hidden text-center text-slate-500 py-12">No grammar rules yet. Click "Add Rule" to create one.</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- ═══════════════════ MODALS ═══════════════════ -->
+
+    <!-- Language Modal -->
+    <div id="lang-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
+        <div class="card rounded-2xl p-6 w-full max-w-md mx-4 fade-in">
+            <h3 id="lang-modal-title" class="text-lg font-bold text-white mb-4">Add Language</h3>
+            <input type="hidden" id="lang-edit-id">
+            <div class="space-y-3">
+                <div>
+                    <label class="text-xs text-slate-400 mb-1 block">Language Name</label>
+                    <input id="lang-name" type="text" placeholder="e.g. English" class="input-field w-full px-4 py-2.5 rounded-xl text-sm transition-all">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 mb-1 block">Language Code</label>
+                    <input id="lang-code" type="text" placeholder="e.g. en" class="input-field w-full px-4 py-2.5 rounded-xl text-sm transition-all">
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button onclick="hideModal('lang-modal')" class="px-4 py-2 rounded-xl text-sm text-slate-400 hover:text-white hover:bg-slate-700 transition-all">Cancel</button>
+                <button onclick="saveLanguage()" class="btn-primary px-6 py-2 rounded-xl text-sm font-semibold text-white transition-all">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Translation Modal -->
+    <div id="trans-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
+        <div class="card rounded-2xl p-6 w-full max-w-lg mx-4 fade-in">
+            <h3 id="trans-modal-title" class="text-lg font-bold text-white mb-4">Add Translation</h3>
+            <input type="hidden" id="trans-edit-id">
+            <div class="space-y-3">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs text-slate-400 mb-1 block">Source Language</label>
+                        <select id="trans-src-lang" class="input-field w-full px-4 py-2.5 rounded-xl text-sm transition-all"></select>
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 mb-1 block">Target Language</label>
+                        <select id="trans-tgt-lang" class="input-field w-full px-4 py-2.5 rounded-xl text-sm transition-all"></select>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 mb-1 block">Source Text</label>
+                    <textarea id="trans-src-text" rows="2" placeholder="Original text" class="input-field w-full px-4 py-2.5 rounded-xl text-sm transition-all"></textarea>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 mb-1 block">Translated Text</label>
+                    <textarea id="trans-tgt-text" rows="2" placeholder="Translated text" class="input-field w-full px-4 py-2.5 rounded-xl text-sm transition-all"></textarea>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button onclick="hideModal('trans-modal')" class="px-4 py-2 rounded-xl text-sm text-slate-400 hover:text-white hover:bg-slate-700 transition-all">Cancel</button>
+                <button onclick="saveTranslation()" class="btn-primary px-6 py-2 rounded-xl text-sm font-semibold text-white transition-all">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grammar Rule Modal -->
+    <div id="rule-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
+        <div class="card rounded-2xl p-6 w-full max-w-lg mx-4 fade-in">
+            <h3 id="rule-modal-title" class="text-lg font-bold text-white mb-4">Add Grammar Rule</h3>
+            <input type="hidden" id="rule-edit-id">
+            <div class="space-y-3">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs text-slate-400 mb-1 block">Language</label>
+                        <select id="rule-lang" class="input-field w-full px-4 py-2.5 rounded-xl text-sm transition-all"></select>
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 mb-1 block">Rule Name</label>
+                        <input id="rule-name" type="text" placeholder="e.g. Subject-Verb Agreement" class="input-field w-full px-4 py-2.5 rounded-xl text-sm transition-all">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 mb-1 block">Description</label>
+                    <textarea id="rule-desc" rows="2" placeholder="Describe the grammar rule" class="input-field w-full px-4 py-2.5 rounded-xl text-sm transition-all"></textarea>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 mb-1 block">Correct Example</label>
+                    <input id="rule-correct" type="text" placeholder="She runs every day." class="input-field w-full px-4 py-2.5 rounded-xl text-sm transition-all">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 mb-1 block">Incorrect Example</label>
+                    <input id="rule-incorrect" type="text" placeholder="She run every day." class="input-field w-full px-4 py-2.5 rounded-xl text-sm transition-all">
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button onclick="hideModal('rule-modal')" class="px-4 py-2 rounded-xl text-sm text-slate-400 hover:text-white hover:bg-slate-700 transition-all">Cancel</button>
+                <button onclick="saveGrammarRule()" class="btn-primary px-6 py-2 rounded-xl text-sm font-semibold text-white transition-all">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading" class="fixed inset-0 z-[60] hidden items-center justify-center modal-backdrop">
+        <div class="flex flex-col items-center gap-3">
+            <div class="w-10 h-10 border-3 border-brand-400 border-t-transparent rounded-full animate-spin"></div>
+            <p class="text-sm text-slate-300">Processing with AI...</p>
+        </div>
+    </div>
+
+<script>
+const API = '';
+
+// ── UTILS ──────────────────────────────────────────────────────────
+
+function toast(msg, type = 'success') {
+    const c = document.getElementById('toast-container');
+    const colors = { success: 'bg-emerald-600', error: 'bg-red-600', info: 'bg-brand-600' };
+    const d = document.createElement('div');
+    d.className = `toast ${colors[type] || colors.info} text-white text-sm px-4 py-3 rounded-xl shadow-lg`;
+    d.textContent = msg;
+    c.appendChild(d);
+    setTimeout(() => d.remove(), 3000);
+}
+
+async function api(path, options = {}) {
+    try {
+        const res = await fetch(API + path, {
+            headers: { 'Content-Type': 'application/json' },
+            ...options,
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || data.error || 'Request failed');
+        return data;
+    } catch (err) {
+        toast(err.message, 'error');
+        throw err;
+    }
+}
+
+function showLoading() { document.getElementById('loading').classList.remove('hidden'); document.getElementById('loading').classList.add('flex'); }
+function hideLoading() { document.getElementById('loading').classList.add('hidden'); document.getElementById('loading').classList.remove('flex'); }
+
+function showModal(id) { const m = document.getElementById(id); m.classList.remove('hidden'); m.classList.add('flex'); }
+function hideModal(id) { const m = document.getElementById(id); m.classList.add('hidden'); m.classList.remove('flex'); }
+
+function truncate(s, n = 40) { return s && s.length > n ? s.substring(0, n) + '…' : s || ''; }
+
+// ── TABS ───────────────────────────────────────────────────────────
+
+function switchTab(tab) {
+    document.querySelectorAll('.tab-content').forEach(s => s.classList.add('hidden'));
+    document.querySelectorAll('.tab-btn').forEach(b => {
+        b.classList.remove('tab-active');
+        b.classList.add('text-slate-400');
+    });
+    const section = document.getElementById('tab-' + tab);
+    section.classList.remove('hidden');
+    section.classList.add('fade-in');
+    const btn = document.querySelector(`[data-tab="${tab}"]`);
+    btn.classList.add('tab-active');
+    btn.classList.remove('text-slate-400');
+
+    if (tab === 'languages') loadLanguages();
+    if (tab === 'translations') loadTranslations();
+    if (tab === 'grammar') loadGrammarRules();
+}
+
+// ── LANGUAGES ──────────────────────────────────────────────────────
+
+async function loadLanguages() {
+    try {
+        const data = await api('/api/languages');
+        const tb = document.getElementById('languages-table');
+        const empty = document.getElementById('languages-empty');
+        if (data.count === 0) { tb.innerHTML = ''; empty.classList.remove('hidden'); return; }
+        empty.classList.add('hidden');
+        tb.innerHTML = data.languages.map(l => `
+            <tr class="hover:bg-slate-800/40 transition-colors">
+                <td class="py-3 px-4 text-slate-400">${l.id}</td>
+                <td class="py-3 px-4 font-medium text-white">${l.name}</td>
+                <td class="py-3 px-4"><span class="bg-brand-500/20 text-brand-300 text-xs px-2 py-0.5 rounded-md font-mono">${l.code}</span></td>
+                <td class="py-3 px-4 text-slate-400 text-xs">${l.created_at || ''}</td>
+                <td class="py-3 px-4 text-right">
+                    <button onclick='editLanguage(${JSON.stringify(l)})' class="text-xs text-brand-400 hover:text-brand-300 mr-3 transition-colors">Edit</button>
+                    <button onclick="deleteLanguage(${l.id})" class="text-xs text-red-400 hover:text-red-300 transition-colors">Delete</button>
+                </td>
+            </tr>`).join('');
+    } catch (e) {}
+}
+
+function editLanguage(l) {
+    document.getElementById('lang-modal-title').textContent = 'Edit Language';
+    document.getElementById('lang-edit-id').value = l.id;
+    document.getElementById('lang-name').value = l.name;
+    document.getElementById('lang-code').value = l.code;
+    showModal('lang-modal');
+}
+
+async function saveLanguage() {
+    const id = document.getElementById('lang-edit-id').value;
+    const body = JSON.stringify({
+        name: document.getElementById('lang-name').value,
+        code: document.getElementById('lang-code').value,
+    });
+    try {
+        if (id) {
+            await api(`/api/languages/${id}`, { method: 'PUT', body });
+            toast('Language updated');
+        } else {
+            await api('/api/languages', { method: 'POST', body });
+            toast('Language created');
+        }
+        hideModal('lang-modal');
+        document.getElementById('lang-edit-id').value = '';
+        document.getElementById('lang-name').value = '';
+        document.getElementById('lang-code').value = '';
+        loadLanguages();
+    } catch (e) {}
+}
+
+async function deleteLanguage(id) {
+    if (!confirm('Delete this language?')) return;
+    try { await api(`/api/languages/${id}`, { method: 'DELETE' }); toast('Language deleted'); loadLanguages(); } catch (e) {}
+}
+
+function showLangModal() {
+    document.getElementById('lang-modal-title').textContent = 'Add Language';
+    document.getElementById('lang-edit-id').value = '';
+    document.getElementById('lang-name').value = '';
+    document.getElementById('lang-code').value = '';
+    showModal('lang-modal');
+}
+
+// ── TRANSLATIONS ───────────────────────────────────────────────────
+
+async function loadLangOptions() {
+    try {
+        const data = await api('/api/languages');
+        return data.languages.map(l => `<option value="${l.id}">${l.name} (${l.code})</option>`).join('');
+    } catch { return ''; }
+}
+
+async function showTranslationModal(t = null) {
+    const opts = await loadLangOptions();
+    if (!opts) { toast('Please add languages first', 'info'); return; }
+    document.getElementById('trans-src-lang').innerHTML = opts;
+    document.getElementById('trans-tgt-lang').innerHTML = opts;
+    if (t) {
+        document.getElementById('trans-modal-title').textContent = 'Edit Translation';
+        document.getElementById('trans-edit-id').value = t.id;
+        document.getElementById('trans-src-lang').value = t.source_language_id;
+        document.getElementById('trans-tgt-lang').value = t.target_language_id;
+        document.getElementById('trans-src-text').value = t.source_text;
+        document.getElementById('trans-tgt-text').value = t.translated_text;
+    } else {
+        document.getElementById('trans-modal-title').textContent = 'Add Translation';
+        document.getElementById('trans-edit-id').value = '';
+        document.getElementById('trans-src-text').value = '';
+        document.getElementById('trans-tgt-text').value = '';
+    }
+    showModal('trans-modal');
+}
+
+async function loadTranslations() {
+    try {
+        const data = await api('/api/translations');
+        const tb = document.getElementById('translations-table');
+        const empty = document.getElementById('translations-empty');
+        if (data.count === 0) { tb.innerHTML = ''; empty.classList.remove('hidden'); return; }
+        empty.classList.add('hidden');
+        tb.innerHTML = data.translations.map(t => `
+            <tr class="hover:bg-slate-800/40 transition-colors">
+                <td class="py-3 px-4 text-slate-400">${t.id}</td>
+                <td class="py-3 px-4"><span class="bg-brand-500/20 text-brand-300 text-xs px-2 py-0.5 rounded-md">${t.source_language_name}</span></td>
+                <td class="py-3 px-4"><span class="bg-emerald-500/20 text-emerald-300 text-xs px-2 py-0.5 rounded-md">${t.target_language_name}</span></td>
+                <td class="py-3 px-4 text-slate-300 text-xs">${truncate(t.source_text)}</td>
+                <td class="py-3 px-4 text-slate-300 text-xs">${truncate(t.translated_text)}</td>
+                <td class="py-3 px-4 text-right">
+                    <button onclick='showTranslationModal(${JSON.stringify(t)})' class="text-xs text-brand-400 hover:text-brand-300 mr-3 transition-colors">Edit</button>
+                    <button onclick="deleteTranslation(${t.id})" class="text-xs text-red-400 hover:text-red-300 transition-colors">Delete</button>
+                </td>
+            </tr>`).join('');
+    } catch (e) {}
+}
+
+async function saveTranslation() {
+    const id = document.getElementById('trans-edit-id').value;
+    const body = JSON.stringify({
+        source_language_id: parseInt(document.getElementById('trans-src-lang').value),
+        target_language_id: parseInt(document.getElementById('trans-tgt-lang').value),
+        source_text: document.getElementById('trans-src-text').value,
+        translated_text: document.getElementById('trans-tgt-text').value,
+    });
+    try {
+        if (id) {
+            await api(`/api/translations/${id}`, { method: 'PUT', body });
+            toast('Translation updated');
+        } else {
+            await api('/api/translations', { method: 'POST', body });
+            toast('Translation created');
+        }
+        hideModal('trans-modal');
+        loadTranslations();
+    } catch (e) {}
+}
+
+async function deleteTranslation(id) {
+    if (!confirm('Delete this translation?')) return;
+    try { await api(`/api/translations/${id}`, { method: 'DELETE' }); toast('Translation deleted'); loadTranslations(); } catch (e) {}
+}
+
+// ── GRAMMAR RULES ──────────────────────────────────────────────────
+
+async function showGrammarRuleModal(r = null) {
+    const opts = await loadLangOptions();
+    if (!opts) { toast('Please add languages first', 'info'); return; }
+    document.getElementById('rule-lang').innerHTML = opts;
+    if (r) {
+        document.getElementById('rule-modal-title').textContent = 'Edit Grammar Rule';
+        document.getElementById('rule-edit-id').value = r.id;
+        document.getElementById('rule-lang').value = r.language_id;
+        document.getElementById('rule-name').value = r.rule_name;
+        document.getElementById('rule-desc').value = r.description;
+        document.getElementById('rule-correct').value = r.example_correct || '';
+        document.getElementById('rule-incorrect').value = r.example_incorrect || '';
+    } else {
+        document.getElementById('rule-modal-title').textContent = 'Add Grammar Rule';
+        document.getElementById('rule-edit-id').value = '';
+        document.getElementById('rule-name').value = '';
+        document.getElementById('rule-desc').value = '';
+        document.getElementById('rule-correct').value = '';
+        document.getElementById('rule-incorrect').value = '';
+    }
+    showModal('rule-modal');
+}
+
+async function loadGrammarRules() {
+    try {
+        const data = await api('/api/grammar-rules');
+        const tb = document.getElementById('grammar-table');
+        const empty = document.getElementById('grammar-empty');
+        if (data.count === 0) { tb.innerHTML = ''; empty.classList.remove('hidden'); return; }
+        empty.classList.add('hidden');
+        tb.innerHTML = data.grammar_rules.map(r => `
+            <tr class="hover:bg-slate-800/40 transition-colors">
+                <td class="py-3 px-4 text-slate-400">${r.id}</td>
+                <td class="py-3 px-4"><span class="bg-brand-500/20 text-brand-300 text-xs px-2 py-0.5 rounded-md">${r.language_name}</span></td>
+                <td class="py-3 px-4 font-medium text-white">${r.rule_name}</td>
+                <td class="py-3 px-4 text-slate-300 text-xs">${truncate(r.description, 60)}</td>
+                <td class="py-3 px-4 text-right">
+                    <button onclick='showGrammarRuleModal(${JSON.stringify(r)})' class="text-xs text-brand-400 hover:text-brand-300 mr-3 transition-colors">Edit</button>
+                    <button onclick="deleteGrammarRule(${r.id})" class="text-xs text-red-400 hover:text-red-300 transition-colors">Delete</button>
+                </td>
+            </tr>`).join('');
+    } catch (e) {}
+}
+
+async function saveGrammarRule() {
+    const id = document.getElementById('rule-edit-id').value;
+    const body = JSON.stringify({
+        language_id: parseInt(document.getElementById('rule-lang').value),
+        rule_name: document.getElementById('rule-name').value,
+        description: document.getElementById('rule-desc').value,
+        example_correct: document.getElementById('rule-correct').value,
+        example_incorrect: document.getElementById('rule-incorrect').value,
+    });
+    try {
+        if (id) {
+            await api(`/api/grammar-rules/${id}`, { method: 'PUT', body });
+            toast('Grammar rule updated');
+        } else {
+            await api('/api/grammar-rules', { method: 'POST', body });
+            toast('Grammar rule created');
+        }
+        hideModal('rule-modal');
+        loadGrammarRules();
+    } catch (e) {}
+}
+
+async function deleteGrammarRule(id) {
+    if (!confirm('Delete this grammar rule?')) return;
+    try { await api(`/api/grammar-rules/${id}`, { method: 'DELETE' }); toast('Grammar rule deleted'); loadGrammarRules(); } catch (e) {}
+}
+
+// ── AI ENDPOINTS ───────────────────────────────────────────────────
+
+async function aiTranslate() {
+    const text = document.getElementById('ai-translate-text').value.trim();
+    const src = document.getElementById('ai-src-lang').value.trim();
+    const tgt = document.getElementById('ai-tgt-lang').value.trim();
+    if (!text || !src || !tgt) { toast('Please fill all fields', 'error'); return; }
+    showLoading();
+    try {
+        const res = await api('/api/ai/translate', {
+            method: 'POST',
+            body: JSON.stringify({ text, source_language: src, target_language: tgt }),
+        });
+        const d = res.data;
+        document.getElementById('translate-output').textContent = d.translated_text;
+        document.getElementById('translate-confidence').textContent = d.confidence != null ? `Confidence: ${(d.confidence * 100).toFixed(0)}%` : '';
+        document.getElementById('translate-notes').textContent = d.notes || '';
+        document.getElementById('translate-result').classList.remove('hidden');
+        toast('Translation complete');
+    } catch (e) {} finally { hideLoading(); }
+}
+
+async function aiGrammarCheck() {
+    const text = document.getElementById('ai-grammar-text').value.trim();
+    if (!text) { toast('Please enter text to check', 'error'); return; }
+    const lang = document.getElementById('ai-grammar-lang').value.trim() || 'English';
+    showLoading();
+    try {
+        const res = await api('/api/ai/grammar-check', {
+            method: 'POST',
+            body: JSON.stringify({ text, language: lang }),
+        });
+        const d = res.data;
+        document.getElementById('grammar-output').textContent = d.corrected_text;
+
+        // Score badge
+        const scoreBadge = document.getElementById('grammar-score');
+        if (d.score != null) {
+            const pct = (d.score * 100).toFixed(0);
+            const color = d.score > 0.8 ? 'bg-emerald-500/20 text-emerald-300' : d.score > 0.5 ? 'bg-amber-500/20 text-amber-300' : 'bg-red-500/20 text-red-300';
+            scoreBadge.className = `text-xs font-bold px-2 py-0.5 rounded-full ${color}`;
+            scoreBadge.textContent = `Score: ${pct}%`;
+        } else { scoreBadge.textContent = ''; }
+
+        // Errors
+        const errDiv = document.getElementById('grammar-errors');
+        if (d.errors && d.errors.length) {
+            errDiv.innerHTML = '<p class="text-xs text-red-400 font-semibold mb-1">Errors Found:</p>' +
+                d.errors.map(e => `<div class="bg-red-500/10 rounded-lg p-2 text-xs"><span class="text-red-300 line-through">${e.original}</span> → <span class="text-emerald-300">${e.correction}</span><p class="text-slate-400 mt-0.5">${e.explanation}</p></div>`).join('');
+        } else { errDiv.innerHTML = ''; }
+
+        // Suggestions
+        const sugDiv = document.getElementById('grammar-suggestions');
+        if (d.suggestions && d.suggestions.length) {
+            sugDiv.innerHTML = '<p class="text-xs text-brand-400 font-semibold mt-2 mb-1">Suggestions:</p><ul class="list-disc list-inside text-xs text-slate-400 space-y-0.5">' +
+                d.suggestions.map(s => `<li>${s}</li>`).join('') + '</ul>';
+        } else { sugDiv.innerHTML = ''; }
+
+        document.getElementById('grammar-result').classList.remove('hidden');
+        toast('Grammar check complete');
+    } catch (e) {} finally { hideLoading(); }
+}
+
+async function aiSummarize() {
+    const text = document.getElementById('ai-sum-text').value.trim();
+    if (!text) { toast('Please enter text to summarize', 'error'); return; }
+    const target_language = document.getElementById('ai-sum-lang').value.trim() || undefined;
+    const max_sentences = parseInt(document.getElementById('ai-sum-sentences').value) || 3;
+    showLoading();
+    try {
+        const body = { text, max_sentences };
+        if (target_language) body.target_language = target_language;
+        const res = await api('/api/ai/summarize', { method: 'POST', body: JSON.stringify(body) });
+        const d = res.data;
+        document.getElementById('summarize-output').textContent = d.summary;
+        const kpDiv = document.getElementById('summarize-keypoints');
+        if (d.key_points && d.key_points.length) {
+            kpDiv.innerHTML = '<p class="text-xs text-amber-400 font-semibold mb-1">Key Points:</p><ul class="list-disc list-inside text-xs text-slate-400 space-y-0.5">' +
+                d.key_points.map(k => `<li>${k}</li>`).join('') + '</ul>';
+        } else { kpDiv.innerHTML = ''; }
+        document.getElementById('summarize-result').classList.remove('hidden');
+        toast('Summarization complete');
+    } catch (e) {} finally { hideLoading(); }
+}
+
+async function aiDetect() {
+    const text = document.getElementById('ai-detect-text').value.trim();
+    if (!text) { toast('Please enter text to detect', 'error'); return; }
+    showLoading();
+    try {
+        const res = await api('/api/ai/language-detect', { method: 'POST', body: JSON.stringify({ text }) });
+        const d = res.data;
+        document.getElementById('detect-lang').textContent = d.detected_language;
+        document.getElementById('detect-code').textContent = d.language_code || '';
+        document.getElementById('detect-conf').textContent = d.confidence != null ? `(${(d.confidence * 100).toFixed(0)}% confidence)` : '';
+        const altDiv = document.getElementById('detect-alts');
+        if (d.alternatives && d.alternatives.length) {
+            altDiv.innerHTML = '<p class="text-xs text-slate-500 mt-1">Alternatives: ' +
+                d.alternatives.map(a => `${a.language || a.detected_language || ''} (${a.code || a.language_code || ''})`).join(', ') + '</p>';
+        } else { altDiv.innerHTML = ''; }
+        document.getElementById('detect-result').classList.remove('hidden');
+        toast('Language detected');
+    } catch (e) {} finally { hideLoading(); }
+}
+
+// ── INIT ───────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    // Check API health
+    fetch(API + '/api/health')
+        .then(r => r.json())
+        .then(d => { if (d.status === 'healthy') document.getElementById('api-status').innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> <span class="text-emerald-400">API Connected</span>'; })
+        .catch(() => { document.getElementById('api-status').innerHTML = '<span class="w-2 h-2 rounded-full bg-red-400"></span> <span class="text-red-400">API Offline</span>'; });
+});
+</script>
+</body>
+</html>
