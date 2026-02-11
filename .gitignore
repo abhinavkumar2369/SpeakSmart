@@ -5,3 +5,6 @@ logs/
 speaksmart.db
 app/__pycache__/
 *.pyc
+
+# Docker
+*.db-journal
