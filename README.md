@@ -5,11 +5,15 @@
   <img src="https://img.shields.io/badge/Flask-API-green.svg" alt="Flask" />
 </p>
 
+
 # SpeakSmart
 ## AI Language Translation & Grammar Engine
 
 SpeakSmart is a powerful RESTful API for language translation, grammar checking, and text analysis, powered by **Google Gemini AI** and **Flask**. It enables seamless multilingual communication, advanced grammar correction, and text summarization for developers and businesses.
 
+## Screenshots
+
+![screenshot](docs/ui.png)
 
 
 
@@ -61,6 +65,7 @@ SpeakSmart is a powerful RESTful API for language translation, grammar checking,
 
 
 ## 📁 Project Structure
+
 
 ```
 SpeakSmart/
